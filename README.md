@@ -56,13 +56,13 @@ package/
 Test without installing from the repository root:
 
 ```sh
-plasmoidviewer -a ./package
+plasmoidviewer -a ./package -s 1100x520
 ```
 
 Test as a horizontal panel widget:
 
 ```sh
-plasmoidviewer -a ./package -l topedge -f horizontal
+plasmoidviewer -a ./package -l topedge -f horizontal -s 1100x520
 ```
 
 Install or upgrade locally:

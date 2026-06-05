@@ -8,10 +8,10 @@ import org.kde.plasma.plasma5support as Plasma5Support
 PlasmoidItem {
     id: root
 
-    width: Kirigami.Units.gridUnit * 48
+    width: root.popupWidth
     height: Kirigami.Units.gridUnit * 24
 
-    Layout.minimumWidth: Kirigami.Units.gridUnit * 32
+    Layout.minimumWidth: root.tableWidth + Kirigami.Units.smallSpacing * 2
     Layout.minimumHeight: Kirigami.Units.gridUnit * 14
 
     Plasmoid.icon: "office-chart-line"
@@ -47,17 +47,19 @@ PlasmoidItem {
                 ? i18n("... 🔥")
                 : i18n("ERR 🔥")
 
-    readonly property int periodColumnWidth: Kirigami.Units.gridUnit * 7
-    readonly property int agentColumnWidth: Kirigami.Units.gridUnit * 7
-    readonly property int modelColumnWidth: Kirigami.Units.gridUnit * 11
-    readonly property int numberColumnWidth: Kirigami.Units.gridUnit * 6
-    readonly property int costColumnWidth: Kirigami.Units.gridUnit * 5
+    readonly property int tableSpacing: Math.max(2, Math.round(Kirigami.Units.smallSpacing / 2))
+    readonly property int periodColumnWidth: Kirigami.Units.gridUnit * 5
+    readonly property int agentColumnWidth: Kirigami.Units.gridUnit * 5
+    readonly property int modelColumnWidth: Kirigami.Units.gridUnit * 8
+    readonly property int numberColumnWidth: Kirigami.Units.gridUnit * 4.5
+    readonly property int costColumnWidth: Kirigami.Units.gridUnit * 4
     readonly property int tableWidth: root.periodColumnWidth
         + root.agentColumnWidth
         + root.modelColumnWidth
         + root.numberColumnWidth * 4
         + root.costColumnWidth
-        + Kirigami.Units.smallSpacing * 7
+        + root.tableSpacing * 7
+    readonly property int popupWidth: Math.max(root.tableWidth + Kirigami.Units.largeSpacing * 2, Kirigami.Units.gridUnit * 58)
 
     component TableCell: PlasmaComponents.Label {
         property int cellWidth: Kirigami.Units.gridUnit * 6
@@ -67,6 +69,7 @@ PlasmoidItem {
         Layout.maximumWidth: cellWidth
         maximumLineCount: 1
         elide: Text.ElideRight
+        font: Kirigami.Theme.smallFont
         verticalAlignment: Text.AlignVCenter
     }
 
@@ -422,14 +425,14 @@ PlasmoidItem {
     }
 
     fullRepresentation: Item {
-        Layout.minimumWidth: Kirigami.Units.gridUnit * 34
+        Layout.minimumWidth: root.tableWidth + Kirigami.Units.smallSpacing * 2
         Layout.minimumHeight: Kirigami.Units.gridUnit * 16
-        Layout.preferredWidth: root.tableWidth + Kirigami.Units.largeSpacing * 2
+        Layout.preferredWidth: root.popupWidth
         Layout.preferredHeight: Kirigami.Units.gridUnit * 25
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: Kirigami.Units.largeSpacing
+            anchors.margins: Kirigami.Units.smallSpacing
             spacing: Kirigami.Units.smallSpacing
 
             RowLayout {
@@ -496,27 +499,41 @@ PlasmoidItem {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
-                contentWidth: root.tableWidth
+                contentWidth: tableContent.width
                 contentHeight: tableContent.implicitHeight
+                PlasmaComponents.ScrollBar.horizontal.policy: PlasmaComponents.ScrollBar.AlwaysOff
 
                 ColumnLayout {
                     id: tableContent
 
-                    width: root.tableWidth
-                    spacing: Kirigami.Units.smallSpacing
+                    readonly property int tableAvailableWidth: Math.max(root.tableWidth, tableScroll.width)
+                    readonly property int extraWidth: Math.max(0, tableAvailableWidth - root.tableWidth)
+                    readonly property int periodWidth: root.periodColumnWidth + Math.round(extraWidth * 0.10)
+                    readonly property int agentWidth: root.agentColumnWidth + Math.round(extraWidth * 0.10)
+                    readonly property int modelWidth: root.modelColumnWidth + Math.round(extraWidth * 0.30)
+                    readonly property int numberWidth: root.numberColumnWidth + Math.round(extraWidth * 0.10)
+                    readonly property int costWidth: tableAvailableWidth
+                        - periodWidth
+                        - agentWidth
+                        - modelWidth
+                        - numberWidth * 4
+                        - root.tableSpacing * 7
+
+                    width: tableAvailableWidth
+                    spacing: root.tableSpacing
 
                     RowLayout {
                         Layout.fillWidth: true
-                        spacing: Kirigami.Units.smallSpacing
+                        spacing: root.tableSpacing
 
-                        TableCell { text: i18n("Period"); cellWidth: root.periodColumnWidth; font.bold: true }
-                        TableCell { text: i18n("Agent"); cellWidth: root.agentColumnWidth; font.bold: true }
-                        TableCell { text: i18n("Model"); cellWidth: root.modelColumnWidth; font.bold: true }
-                        TableCell { text: i18n("Input"); cellWidth: root.numberColumnWidth; font.bold: true; horizontalAlignment: Text.AlignRight }
-                        TableCell { text: i18n("Output"); cellWidth: root.numberColumnWidth; font.bold: true; horizontalAlignment: Text.AlignRight }
-                        TableCell { text: i18n("Cached"); cellWidth: root.numberColumnWidth; font.bold: true; horizontalAlignment: Text.AlignRight }
-                        TableCell { text: i18n("Total"); cellWidth: root.numberColumnWidth; font.bold: true; horizontalAlignment: Text.AlignRight }
-                        TableCell { text: i18n("Cost"); cellWidth: root.costColumnWidth; font.bold: true; horizontalAlignment: Text.AlignRight }
+                        TableCell { text: i18n("Period"); cellWidth: tableContent.periodWidth; font.bold: true }
+                        TableCell { text: i18n("Agent"); cellWidth: tableContent.agentWidth; font.bold: true }
+                        TableCell { text: i18n("Model"); cellWidth: tableContent.modelWidth; font.bold: true }
+                        TableCell { text: i18n("Input"); cellWidth: tableContent.numberWidth; font.bold: true; horizontalAlignment: Text.AlignRight }
+                        TableCell { text: i18n("Output"); cellWidth: tableContent.numberWidth; font.bold: true; horizontalAlignment: Text.AlignRight }
+                        TableCell { text: i18n("Cached"); cellWidth: tableContent.numberWidth; font.bold: true; horizontalAlignment: Text.AlignRight }
+                        TableCell { text: i18n("Total"); cellWidth: tableContent.numberWidth; font.bold: true; horizontalAlignment: Text.AlignRight }
+                        TableCell { text: i18n("Cost"); cellWidth: tableContent.costWidth; font.bold: true; horizontalAlignment: Text.AlignRight }
                     }
 
                     Rectangle {
@@ -550,16 +567,16 @@ PlasmoidItem {
 
                                 anchors.left: parent.left
                                 anchors.right: parent.right
-                                spacing: Kirigami.Units.smallSpacing
+                                spacing: root.tableSpacing
 
-                                TableCell { text: rowDelegate.periodLabel; cellWidth: root.periodColumnWidth; font.bold: rowDelegate.totalRow }
-                                TableCell { text: rowDelegate.agentName; cellWidth: root.agentColumnWidth; font.bold: rowDelegate.totalRow }
-                                TableCell { text: rowDelegate.modelName; cellWidth: root.modelColumnWidth; font.bold: rowDelegate.totalRow }
-                                TableCell { text: rowDelegate.inputTokens; cellWidth: root.numberColumnWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
-                                TableCell { text: rowDelegate.outputTokens; cellWidth: root.numberColumnWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
-                                TableCell { text: rowDelegate.cachedTokens; cellWidth: root.numberColumnWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
-                                TableCell { text: rowDelegate.totalTokens; cellWidth: root.numberColumnWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
-                                TableCell { text: rowDelegate.cost; cellWidth: root.costColumnWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
+                                TableCell { text: rowDelegate.periodLabel; cellWidth: tableContent.periodWidth; font.bold: rowDelegate.totalRow }
+                                TableCell { text: rowDelegate.agentName; cellWidth: tableContent.agentWidth; font.bold: rowDelegate.totalRow }
+                                TableCell { text: rowDelegate.modelName; cellWidth: tableContent.modelWidth; font.bold: rowDelegate.totalRow }
+                                TableCell { text: rowDelegate.inputTokens; cellWidth: tableContent.numberWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
+                                TableCell { text: rowDelegate.outputTokens; cellWidth: tableContent.numberWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
+                                TableCell { text: rowDelegate.cachedTokens; cellWidth: tableContent.numberWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
+                                TableCell { text: rowDelegate.totalTokens; cellWidth: tableContent.numberWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
+                                TableCell { text: rowDelegate.cost; cellWidth: tableContent.costWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
                             }
                         }
                     }

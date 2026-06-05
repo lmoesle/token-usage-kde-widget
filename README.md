@@ -1,41 +1,53 @@
 # token-usage-kde-widget
 
-KDE Plasma 6 widget for displaying token usage costs from the `token-usage` CLI.
+![](token-usage.png)
+
+## About
+
+KDE Plasma 6 widget for tracking AI token usage costs in your panel.
+
+The widget is a UI wrapper around the [`token-usage`](https://github.com/lmoesle/token-usage) command-line tool. It shows today's total cost in the panel as `$0.00 🔥` and opens a tabbed table for today, weekly, monthly, and yearly usage.
 
 The widget package id and display name are `lmoesle-token-usage`.
 
-## CLI contract
+## Getting Started
 
-The widget uses `token-usage` as its base command and runs period-specific raw JSON commands:
-
-```sh
-token-usage today --raw
-token-usage weekly --raw
-token-usage monthly --raw
-token-usage yearly --raw
-```
-
-Recommended shell alias:
+Download and install the widget package:
 
 ```sh
-alias token-usage='npx @lmoesle/token-usage-cli'
+curl -L -o lmoesle-token-usage.plasmoid https://github.com/lmoesle/token-usage-kde-widget/releases/download/v1.0.0/lmoesle-token-usage.plasmoid
+kpackagetool6 --type Plasma/Applet --install lmoesle-token-usage.plasmoid
 ```
 
-You can also install the CLI globally with npm or configure the widget base command to run `npx --yes @lmoesle/token-usage-cli` directly.
+If the widget is already installed, upgrade it instead:
 
-Plasma starts widgets outside a normal interactive terminal. It does not load aliases from `.bashrc`, so create a real `token-usage` executable in a directory on the GUI session `PATH`, or change the widget base command in its settings.
+```sh
+kpackagetool6 --type Plasma/Applet --upgrade lmoesle-token-usage.plasmoid
+```
 
-Example wrapper:
+Create a `token-usage` wrapper script so Plasma can run the CLI. Plasma does not load aliases from `.bashrc`, and nvm's Node path is usually missing from Plasma's environment.
+
+Adjust the Node path if your nvm version differs:
 
 ```sh
 mkdir -p ~/.local/bin
-printf '%s\n' '#!/usr/bin/env sh' 'export PATH="~/.nvm/versions/node/v24.16.0/bin:$PATH"' 'exec npx --yes @lmoesle/token-usage-cli "$@"' > ~/.local/bin/token-usage
+printf '%s\n' '#!/usr/bin/env sh' 'export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH"' 'exec npx --yes @lmoesle/token-usage-cli "$@"' > ~/.local/bin/token-usage
 chmod +x ~/.local/bin/token-usage
 ```
 
-This wrapper avoids the `.bashrc` alias problem and exports the current nvm Node directory before running `npx`. This is needed because `npx` itself starts Node through `/usr/bin/env node`, and Plasma's `PATH` usually does not include nvm paths. If the Node version changes, update the path in `~/.local/bin/token-usage`.
+Verify the CLI wrapper:
 
-The compact panel widget refreshes `token-usage today --raw` every 30 seconds and displays today's total cost as `$0.00 🔥`. Opening the widget shows Today, Weekly, Monthly, and Yearly tabs; selecting a tab runs that period's command again and displays the returned entries in a table.
+```sh
+~/.local/bin/token-usage today --raw
+```
+
+Add the widget to your panel from Plasma's widget picker. If the widget cannot find `token-usage`, open the widget settings and use the full path in `Base command`. E.g.:
+
+```sh
+~/.local/bin/token-usage
+```
+
+![](settings.png)
 
 ## Structure
 

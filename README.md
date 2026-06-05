@@ -29,11 +29,11 @@ Example wrapper:
 
 ```sh
 mkdir -p ~/.local/bin
-printf '%s\n' '#!/usr/bin/env sh' 'exec ~/.nvm/versions/node/v24.16.0/bin/npx --yes @lmoesle/token-usage-cli "$@"' > ~/.local/bin/token-usage
+printf '%s\n' '#!/usr/bin/env sh' 'export PATH="~/.nvm/versions/node/v24.16.0/bin:$PATH"' 'exec npx --yes @lmoesle/token-usage-cli "$@"' > ~/.local/bin/token-usage
 chmod +x ~/.local/bin/token-usage
 ```
 
-This wrapper avoids the `.bashrc` alias problem and uses the absolute `npx` path from the current nvm installation. If the Node version changes, update the path in `~/.local/bin/token-usage`.
+This wrapper avoids the `.bashrc` alias problem and exports the current nvm Node directory before running `npx`. This is needed because `npx` itself starts Node through `/usr/bin/env node`, and Plasma's `PATH` usually does not include nvm paths. If the Node version changes, update the path in `~/.local/bin/token-usage`.
 
 The compact panel widget refreshes `token-usage today --raw` every 30 seconds and displays today's total cost as `$0.00 🔥`. Opening the widget shows Today, Weekly, Monthly, and Yearly tabs; selecting a tab runs that period's command again and displays the returned entries in a table.
 

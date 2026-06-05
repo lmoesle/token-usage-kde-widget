@@ -51,10 +51,3 @@ jobs:
           unzip -t lmoesle-token-usage.plasmoid
           unzip -Z1 lmoesle-token-usage.plasmoid | grep -Fx "metadata.json"
           unzip -Z1 lmoesle-token-usage.plasmoid | grep -Fx "contents/ui/main.qml"
-
-      - name: Upload plasmoid artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: lmoesle-token-usage-plasmoid
-          path: lmoesle-token-usage.plasmoid
-          if-no-files-found: error

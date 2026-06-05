@@ -29,7 +29,7 @@ Example wrapper:
 
 ```sh
 mkdir -p ~/.local/bin
-printf '%s\n' '#!/usr/bin/env sh' 'exec /home/lmoesle/.nvm/versions/node/v24.16.0/bin/npx --yes @lmoesle/token-usage-cli "$@"' > ~/.local/bin/token-usage
+printf '%s\n' '#!/usr/bin/env sh' 'exec ~/.nvm/versions/node/v24.16.0/bin/npx --yes @lmoesle/token-usage-cli "$@"' > ~/.local/bin/token-usage
 chmod +x ~/.local/bin/token-usage
 ```
 

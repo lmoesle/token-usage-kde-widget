@@ -122,7 +122,7 @@ PlasmoidItem {
         return i18n("Plasma does not load aliases from .bashrc. Create a real token-usage executable that Plasma can run:")
             + "\n\n"
             + "mkdir -p ~/.local/bin\n"
-            + "printf '%s\\n' '#!/usr/bin/env sh' 'exec /home/lmoesle/.nvm/versions/node/v24.16.0/bin/npx --yes @lmoesle/token-usage-cli \"$@\"' > ~/.local/bin/token-usage\n"
+            + "printf '%s\\n' '#!/usr/bin/env sh' 'exec ~/.nvm/versions/node/v24.16.0/bin/npx --yes @lmoesle/token-usage-cli \"$@\"' > ~/.local/bin/token-usage\n"
             + "chmod +x ~/.local/bin/token-usage"
     }
 

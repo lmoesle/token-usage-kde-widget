@@ -1,0 +1,60 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libxml2-utils make unzip zip
+
+          if apt-cache show kpackagetool6 >/dev/null 2>&1; then
+            sudo apt-get install -y --no-install-recommends kpackagetool6
+          else
+            echo "kpackagetool6 is not available on this runner; skipping KPackage validation."
+          fi
+
+      - name: Validate package metadata
+        run: |
+          python3 -m json.tool package/metadata.json >/dev/null
+          xmllint --noout package/contents/config/main.xml
+
+      - name: Validate package with KPackage
+        run: |
+          if ! command -v kpackagetool6 >/dev/null 2>&1; then
+            echo "kpackagetool6 not installed; KPackage validation skipped."
+            exit 0
+          fi
+
+          kpackagetool6 --appstream-metainfo ./package >/dev/null
+
+          package_root="${RUNNER_TEMP}/plasma-plasmoids"
+          mkdir -p "${package_root}"
+          kpackagetool6 --type Plasma/Applet --packageroot "${package_root}" --install ./package
+          kpackagetool6 --type Plasma/Applet --packageroot "${package_root}" --list | grep -F "lmoesle-token-usage"
+
+      - name: Build plasmoid package
+        run: make package
+
+      - name: Verify plasmoid archive
+        run: |
+          test -f lmoesle-token-usage.plasmoid
+          unzip -t lmoesle-token-usage.plasmoid
+          unzip -Z1 lmoesle-token-usage.plasmoid | grep -Fx "metadata.json"
+          unzip -Z1 lmoesle-token-usage.plasmoid | grep -Fx "contents/ui/main.qml"
+
+      - name: Upload plasmoid artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lmoesle-token-usage-plasmoid
+          path: lmoesle-token-usage.plasmoid
+          if-no-files-found: error

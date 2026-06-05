@@ -6,8 +6,5 @@
         <entry name="command" type="String">
             <default>token-usage</default>
         </entry>
-        <entry name="refreshIntervalSeconds" type="Int">
-            <default>300</default>
-        </entry>
     </group>
 </kcfg>

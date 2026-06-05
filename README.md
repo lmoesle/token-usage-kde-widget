@@ -1,15 +1,18 @@
 # token-usage-kde-widget
 
-KDE Plasma 6 widget for displaying output from the `token-usage` CLI.
+KDE Plasma 6 widget for displaying token usage costs from the `token-usage` CLI.
 
 The widget package id and display name are `lmoesle-token-usage`.
 
 ## CLI contract
 
-The widget runs this command by default:
+The widget uses `token-usage` as its base command and runs period-specific raw JSON commands:
 
 ```sh
-token-usage
+token-usage today --raw
+token-usage weekly --raw
+token-usage monthly --raw
+token-usage yearly --raw
 ```
 
 Recommended shell alias:
@@ -18,17 +21,21 @@ Recommended shell alias:
 alias token-usage='npx @lmoesle/token-usage-cli'
 ```
 
-You can also install the CLI globally with npm or configure the widget command to run `npx --yes @lmoesle/token-usage-cli` directly.
+You can also install the CLI globally with npm or configure the widget base command to run `npx --yes @lmoesle/token-usage-cli` directly.
 
-Plasma starts widgets outside a normal interactive terminal. If your shell alias is not visible to Plasma, create a `token-usage` executable in a directory on the GUI session `PATH`, or change the widget command in its settings.
+Plasma starts widgets outside a normal interactive terminal. It does not load aliases from `.bashrc`, so create a real `token-usage` executable in a directory on the GUI session `PATH`, or change the widget base command in its settings.
 
 Example wrapper:
 
 ```sh
 mkdir -p ~/.local/bin
-printf '#!/usr/bin/env sh\nexec npx --yes @lmoesle/token-usage-cli "$@"\n' > ~/.local/bin/token-usage
+printf '%s\n' '#!/usr/bin/env sh' 'exec /home/lmoesle/.nvm/versions/node/v24.16.0/bin/npx --yes @lmoesle/token-usage-cli "$@"' > ~/.local/bin/token-usage
 chmod +x ~/.local/bin/token-usage
 ```
+
+This wrapper avoids the `.bashrc` alias problem and uses the absolute `npx` path from the current nvm installation. If the Node version changes, update the path in `~/.local/bin/token-usage`.
+
+The compact panel widget refreshes `token-usage today --raw` every 30 seconds and displays today's total cost as `$0.00 🔥`. Opening the widget shows Today, Weekly, Monthly, and Yearly tabs; selecting a tab runs that period's command again and displays the returned entries in a table.
 
 ## Structure
 

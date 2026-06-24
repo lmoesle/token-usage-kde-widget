@@ -11,7 +11,7 @@
         "Id": "lmoesle-token-usage",
         "License": "GPL-2.0",
         "Name": "lmoesle-token-usage",
-        "Version": "0.1.0",
+        "Version": "1.1.0",
         "Website": "https://github.com/lmoesle/token-usage-kde-widget"
     },
     "KPackageStructure": "Plasma/Applet",

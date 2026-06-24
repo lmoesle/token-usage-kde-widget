@@ -118,6 +118,16 @@ PlasmoidItem {
         return "$" + number.toFixed(2)
     }
 
+    function indexOfValue(values, value) {
+        for (var index = 0; index < values.length; index += 1) {
+            if (values[index] === value) {
+                return index
+            }
+        }
+
+        return -1
+    }
+
     function tokenUsageSetupHelp() {
         return i18n("Plasma does not load aliases from .bashrc. Create a real token-usage executable that Plasma can run:")
             + "\n\n"
@@ -197,28 +207,89 @@ PlasmoidItem {
         }
     }
 
-    function appendTableEntry(period, entry, totalRow) {
+    function appendTableEntry(period, entry, totalRow, displayedPeriodLabel, displayedAgentName, periodSeparator) {
+        var periodLabel = totalRow ? i18n("Total") : String(entry.date || period)
+        var agentName = totalRow ? "" : String(entry.agent || "")
+
         entriesModel.append({
-            periodLabel: totalRow ? i18n("Total") : String(entry.date || period),
-            agentName: totalRow ? "" : String(entry.agent || ""),
+            periodLabel: displayedPeriodLabel === undefined ? periodLabel : displayedPeriodLabel,
+            agentName: displayedAgentName === undefined ? agentName : displayedAgentName,
             modelName: totalRow ? "" : String(entry.model || ""),
             inputTokens: root.formatInteger(entry.inputTokens),
             outputTokens: root.formatInteger(entry.outputTokens),
             cachedTokens: root.formatInteger(entry.cachedTokens),
             totalTokens: root.formatInteger(entry.totalTokens),
             cost: root.formatCost(entry.cost),
-            totalRow: totalRow
+            totalRow: totalRow,
+            periodSeparator: periodSeparator === true
         })
     }
 
     function populateTable(period, payload) {
         entriesModel.clear()
 
-        for (var index = 0; index < payload.entries.length; index += 1) {
-            root.appendTableEntry(period, payload.entries[index], false)
+        var groupedEntries = []
+        var periodOrder = []
+        var agentOrderByPeriod = ({})
+
+        for (var payloadIndex = 0; payloadIndex < payload.entries.length; payloadIndex += 1) {
+            var entry = payload.entries[payloadIndex]
+            var periodLabel = String(entry.date || period)
+            var agentName = String(entry.agent || "")
+            var periodIndex = root.indexOfValue(periodOrder, periodLabel)
+            var periodKey = "$" + periodLabel
+
+            if (periodIndex === -1) {
+                periodOrder.push(periodLabel)
+                periodIndex = periodOrder.length - 1
+                agentOrderByPeriod[periodKey] = []
+            }
+
+            var agentOrder = agentOrderByPeriod[periodKey]
+            var agentIndex = root.indexOfValue(agentOrder, agentName)
+            if (agentIndex === -1) {
+                agentOrder.push(agentName)
+                agentIndex = agentOrder.length - 1
+            }
+
+            groupedEntries.push({
+                entry: entry,
+                periodLabel: periodLabel,
+                agentName: agentName,
+                periodIndex: periodIndex,
+                agentIndex: agentIndex,
+                originalIndex: payloadIndex
+            })
         }
 
-        root.appendTableEntry(period, payload.total, true)
+        groupedEntries.sort(function(left, right) {
+            if (left.periodIndex !== right.periodIndex) {
+                return left.periodIndex - right.periodIndex
+            }
+            if (left.agentIndex !== right.agentIndex) {
+                return left.agentIndex - right.agentIndex
+            }
+
+            return left.originalIndex - right.originalIndex
+        })
+
+        var previousPeriodLabel = ""
+        var previousAgentName = ""
+
+        for (var index = 0; index < groupedEntries.length; index += 1) {
+            var row = groupedEntries[index]
+            var nextRow = index + 1 < groupedEntries.length ? groupedEntries[index + 1] : null
+            var showPeriod = index === 0 || row.periodLabel !== previousPeriodLabel
+            var showAgent = showPeriod || row.agentName !== previousAgentName
+            var periodSeparator = nextRow === null || row.periodLabel !== nextRow.periodLabel
+
+            root.appendTableEntry(period, row.entry, false, showPeriod ? row.periodLabel : "", showAgent ? row.agentName : "", periodSeparator)
+
+            previousPeriodLabel = row.periodLabel
+            previousAgentName = row.agentName
+        }
+
+        root.appendTableEntry(period, payload.total, true, undefined, undefined, false)
 
         root.activeErrorText = ""
         root.activeUpdatedAtText = Qt.formatDateTime(new Date(), "HH:mm:ss")
@@ -546,7 +617,7 @@ PlasmoidItem {
                     Repeater {
                         model: entriesModel
 
-                        delegate: Item {
+                        delegate: ColumnLayout {
                             id: rowDelegate
 
                             required property string periodLabel
@@ -558,15 +629,15 @@ PlasmoidItem {
                             required property string totalTokens
                             required property string cost
                             required property bool totalRow
+                            required property bool periodSeparator
 
-                            implicitHeight: rowLayout.implicitHeight
                             Layout.fillWidth: true
+                            spacing: root.tableSpacing
 
                             RowLayout {
                                 id: rowLayout
 
-                                anchors.left: parent.left
-                                anchors.right: parent.right
+                                Layout.fillWidth: true
                                 spacing: root.tableSpacing
 
                                 TableCell { text: rowDelegate.periodLabel; cellWidth: tableContent.periodWidth; font.bold: rowDelegate.totalRow }
@@ -577,6 +648,14 @@ PlasmoidItem {
                                 TableCell { text: rowDelegate.cachedTokens; cellWidth: tableContent.numberWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
                                 TableCell { text: rowDelegate.totalTokens; cellWidth: tableContent.numberWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
                                 TableCell { text: rowDelegate.cost; cellWidth: tableContent.costWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
+                            }
+
+                            Rectangle {
+                                visible: rowDelegate.periodSeparator
+                                color: Kirigami.Theme.disabledTextColor
+                                opacity: 0.35
+                                implicitHeight: 1
+                                Layout.fillWidth: true
                             }
                         }
                     }

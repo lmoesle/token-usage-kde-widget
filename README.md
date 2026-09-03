@@ -6,7 +6,7 @@
 
 KDE Plasma 6 widget for tracking AI token usage costs in your panel.
 
-The widget is a UI wrapper around the [`token-usage`](https://github.com/lmoesle/token-usage) command-line tool. It shows today's total cost in the panel as `$0.00 🔥` and opens a tabbed table for today, weekly, monthly, and yearly usage.
+The widget is a UI wrapper around the [`token-usage`](https://github.com/lmoesle/token-usage) command-line tool. It shows today's total cost in the panel as `$0.00 🔥` and opens a tabbed table for today, weekly, monthly, and yearly usage. Today's table includes the agent and model breakdown, while longer periods show combined token usage and cost per period.
 
 The widget package id and display name are `lmoesle-token-usage`.
 

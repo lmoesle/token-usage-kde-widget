@@ -53,13 +53,19 @@ PlasmoidItem {
     readonly property int modelColumnWidth: Kirigami.Units.gridUnit * 8
     readonly property int numberColumnWidth: Kirigami.Units.gridUnit * 4.5
     readonly property int costColumnWidth: Kirigami.Units.gridUnit * 4
-    readonly property int tableWidth: root.periodColumnWidth
+    readonly property bool showDetailedUsage: root.activePeriod === "today"
+    readonly property int detailedTableWidth: root.periodColumnWidth
         + root.agentColumnWidth
         + root.modelColumnWidth
         + root.numberColumnWidth * 4
         + root.costColumnWidth
         + root.tableSpacing * 7
-    readonly property int popupWidth: Math.max(root.tableWidth + Kirigami.Units.largeSpacing * 2, Kirigami.Units.gridUnit * 58)
+    readonly property int summaryTableWidth: root.periodColumnWidth
+        + root.numberColumnWidth
+        + root.costColumnWidth
+        + root.tableSpacing * 2
+    readonly property int tableWidth: root.showDetailedUsage ? root.detailedTableWidth : root.summaryTableWidth
+    readonly property int popupWidth: Math.max(root.detailedTableWidth + Kirigami.Units.largeSpacing * 2, Kirigami.Units.gridUnit * 58)
 
     component TableCell: PlasmaComponents.Label {
         property int cellWidth: Kirigami.Units.gridUnit * 6
@@ -227,6 +233,41 @@ PlasmoidItem {
 
     function populateTable(period, payload) {
         entriesModel.clear()
+
+        if (period !== "today") {
+            var periodLabels = []
+            var periodTotals = []
+
+            for (var summaryIndex = 0; summaryIndex < payload.entries.length; summaryIndex += 1) {
+                var summaryEntry = payload.entries[summaryIndex]
+                var summaryPeriodLabel = String(summaryEntry.date || period)
+                var summaryPeriodIndex = root.indexOfValue(periodLabels, summaryPeriodLabel)
+
+                if (summaryPeriodIndex === -1) {
+                    periodLabels.push(summaryPeriodLabel)
+                    periodTotals.push({
+                        totalTokens: 0,
+                        cost: 0
+                    })
+                    summaryPeriodIndex = periodTotals.length - 1
+                }
+
+                periodTotals[summaryPeriodIndex].totalTokens += Number(summaryEntry.totalTokens) || 0
+                periodTotals[summaryPeriodIndex].cost += Number(summaryEntry.cost) || 0
+            }
+
+            for (var periodIndex = 0; periodIndex < periodLabels.length; periodIndex += 1) {
+                root.appendTableEntry(period, {
+                    date: periodLabels[periodIndex],
+                    totalTokens: periodTotals[periodIndex].totalTokens,
+                    cost: periodTotals[periodIndex].cost
+                }, false, periodLabels[periodIndex], "", periodIndex + 1 < periodLabels.length)
+            }
+
+            root.activeErrorText = ""
+            root.activeUpdatedAtText = Qt.formatDateTime(new Date(), "HH:mm:ss")
+            return
+        }
 
         var groupedEntries = []
         var periodOrder = []
@@ -579,16 +620,13 @@ PlasmoidItem {
 
                     readonly property int tableAvailableWidth: Math.max(root.tableWidth, tableScroll.width)
                     readonly property int extraWidth: Math.max(0, tableAvailableWidth - root.tableWidth)
-                    readonly property int periodWidth: root.periodColumnWidth + Math.round(extraWidth * 0.10)
+                    readonly property int periodWidth: root.periodColumnWidth + Math.round(extraWidth * (root.showDetailedUsage ? 0.10 : 0.34))
                     readonly property int agentWidth: root.agentColumnWidth + Math.round(extraWidth * 0.10)
                     readonly property int modelWidth: root.modelColumnWidth + Math.round(extraWidth * 0.30)
-                    readonly property int numberWidth: root.numberColumnWidth + Math.round(extraWidth * 0.10)
+                    readonly property int numberWidth: root.numberColumnWidth + Math.round(extraWidth * (root.showDetailedUsage ? 0.10 : 0.33))
                     readonly property int costWidth: tableAvailableWidth
                         - periodWidth
-                        - agentWidth
-                        - modelWidth
-                        - numberWidth * 4
-                        - root.tableSpacing * 7
+                        - (root.showDetailedUsage ? agentWidth + modelWidth + numberWidth * 4 + root.tableSpacing * 7 : numberWidth + root.tableSpacing * 2)
 
                     width: tableAvailableWidth
                     spacing: root.tableSpacing
@@ -598,11 +636,11 @@ PlasmoidItem {
                         spacing: root.tableSpacing
 
                         TableCell { text: i18n("Period"); cellWidth: tableContent.periodWidth; font.bold: true }
-                        TableCell { text: i18n("Agent"); cellWidth: tableContent.agentWidth; font.bold: true }
-                        TableCell { text: i18n("Model"); cellWidth: tableContent.modelWidth; font.bold: true }
-                        TableCell { text: i18n("Input"); cellWidth: tableContent.numberWidth; font.bold: true; horizontalAlignment: Text.AlignRight }
-                        TableCell { text: i18n("Output"); cellWidth: tableContent.numberWidth; font.bold: true; horizontalAlignment: Text.AlignRight }
-                        TableCell { text: i18n("Cached"); cellWidth: tableContent.numberWidth; font.bold: true; horizontalAlignment: Text.AlignRight }
+                        TableCell { visible: root.showDetailedUsage; text: i18n("Agent"); cellWidth: tableContent.agentWidth; font.bold: true }
+                        TableCell { visible: root.showDetailedUsage; text: i18n("Model"); cellWidth: tableContent.modelWidth; font.bold: true }
+                        TableCell { visible: root.showDetailedUsage; text: i18n("Input"); cellWidth: tableContent.numberWidth; font.bold: true; horizontalAlignment: Text.AlignRight }
+                        TableCell { visible: root.showDetailedUsage; text: i18n("Output"); cellWidth: tableContent.numberWidth; font.bold: true; horizontalAlignment: Text.AlignRight }
+                        TableCell { visible: root.showDetailedUsage; text: i18n("Cached"); cellWidth: tableContent.numberWidth; font.bold: true; horizontalAlignment: Text.AlignRight }
                         TableCell { text: i18n("Total"); cellWidth: tableContent.numberWidth; font.bold: true; horizontalAlignment: Text.AlignRight }
                         TableCell { text: i18n("Cost"); cellWidth: tableContent.costWidth; font.bold: true; horizontalAlignment: Text.AlignRight }
                     }
@@ -641,11 +679,11 @@ PlasmoidItem {
                                 spacing: root.tableSpacing
 
                                 TableCell { text: rowDelegate.periodLabel; cellWidth: tableContent.periodWidth; font.bold: rowDelegate.totalRow }
-                                TableCell { text: rowDelegate.agentName; cellWidth: tableContent.agentWidth; font.bold: rowDelegate.totalRow }
-                                TableCell { text: rowDelegate.modelName; cellWidth: tableContent.modelWidth; font.bold: rowDelegate.totalRow }
-                                TableCell { text: rowDelegate.inputTokens; cellWidth: tableContent.numberWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
-                                TableCell { text: rowDelegate.outputTokens; cellWidth: tableContent.numberWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
-                                TableCell { text: rowDelegate.cachedTokens; cellWidth: tableContent.numberWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
+                                TableCell { visible: root.showDetailedUsage; text: rowDelegate.agentName; cellWidth: tableContent.agentWidth; font.bold: rowDelegate.totalRow }
+                                TableCell { visible: root.showDetailedUsage; text: rowDelegate.modelName; cellWidth: tableContent.modelWidth; font.bold: rowDelegate.totalRow }
+                                TableCell { visible: root.showDetailedUsage; text: rowDelegate.inputTokens; cellWidth: tableContent.numberWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
+                                TableCell { visible: root.showDetailedUsage; text: rowDelegate.outputTokens; cellWidth: tableContent.numberWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
+                                TableCell { visible: root.showDetailedUsage; text: rowDelegate.cachedTokens; cellWidth: tableContent.numberWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
                                 TableCell { text: rowDelegate.totalTokens; cellWidth: tableContent.numberWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
                                 TableCell { text: rowDelegate.cost; cellWidth: tableContent.costWidth; font.bold: rowDelegate.totalRow; horizontalAlignment: Text.AlignRight }
                             }
